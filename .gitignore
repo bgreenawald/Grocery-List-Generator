@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+.vscode
+venv
+
+# Ignore credentials
+client_secret.json
+creds.py
+
+# Ignore zip
+*.zip
