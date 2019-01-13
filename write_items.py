@@ -1,34 +1,69 @@
-import sys
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import re
 
 import gkeepapi
 
-import get_items
+import creds
 
-def write_items():
+
+def write_items(items):
     """
     Write the needed items to keep.
 
+    Args:
+        items (list): List of items from the Google sheet.
+    Returns:
+        (bool): Success of the program
+        (str): Status of the program execution
     """
-    # Get the list of needed items.
-    items = get_items.get_base_items() + \
-                get_items.get_additional_items()
-
-    # Sort based on the name of the item
-    items.sort()
-
     # Connect to the keep API
     keep = gkeepapi.Keep()
-    success = keep.login("bgreenawald@gmail.com", "ybbbljoqbjxernoz")
+    success = keep.login(creds.KEEP_USERNAME, creds.KEEP_PASSWORD)
 
     if not success:
-        print("Connection failed, exiting program.")
-        sys.exit()
+        message = "Connection failed, exiting program."
+        return False, message
 
     # Get all the notes
     notes = keep.all()
 
+    # Local function to ensure title matches and note is not trashed
+    def validate_note(note):
+        # Remove alpha numeric
+        pattern = re.compile('[^a-zA-Z]+')
+        return not note.trashed and \
+            pattern.sub('', note.title).lower() == "grocerylist"
+
     # Get the grocery note
-    grocery_note = [note for note in notes if note.title == "Grocery List"][0]
+    grocery_note = [note for note in notes if validate_note(note)]
+
+    # Validate the output
+    if not grocery_note:
+        # If there is no note with name 'Grocery List', create it
+        grocery_note = keep.createList('Grocery List')
+    elif len(grocery_note) > 1:
+        error = "More than one note has the name 'grocery list' (spacing" + \
+                "and capitalization do not matter. Please make sure only" + \
+                "one such note exists."
+        return False, error
+    else:
+        # Otherwise, there should only be one note in the list, extract it.
+        grocery_note = grocery_note[0]
+
+    keep.sync()
+
+    # Get the list of items in the grocery note
+    items_in_list = set([x.text for x in grocery_note.items])
+
+    # Make sure we are not adding duplicat elements.
+    items = set(items)
+    items = items.difference(items_in_list)
+
+    # Sort based on the name of the item
+    items = list(items)
+    items.sort()
 
     # Add each item
     for item in items:
@@ -37,5 +72,8 @@ def write_items():
     # Sync with keep
     keep.sync()
 
-if __name__=="__main__":
-    write_items()
+    return True, "Program execution succesful."
+
+
+if __name__ == "__main__":
+    write_items(['2', '5'])
