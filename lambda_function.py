@@ -26,7 +26,7 @@ def lambda_handler(event, context):
         }
 
     # Pass the items along to the write function
-    msg = write_items(items)
+    _, msg = write_items(items)
 
     return {
         'statusCode': 200,
