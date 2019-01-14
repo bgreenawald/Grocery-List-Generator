@@ -52,8 +52,6 @@ def write_items(items):
         # Otherwise, there should only be one note in the list, extract it.
         grocery_note = grocery_note[0]
 
-    keep.sync()
-
     # Get the list of items in the grocery note
     items_in_list = set([x.text for x in grocery_note.items])
 
